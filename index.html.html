@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buzón del Salón</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #1a6cc4;
+    --blue-light: #e6f1fb;
+    --blue-mid: #378add;
+    --blue-dark: #042c53;
+    --blue-hover: #185fa5;
+    --bg: #f0f6ff;
+    --card: #ffffff;
+    --text: #1a2a3a;
+    --text-muted: #5a7a9a;
+    --border: #d0e4f7;
+    --radius: 16px;
+    --shadow: 0 2px 16px rgba(26,108,196,0.10);
+    --shadow-hover: 0 6px 24px rgba(26,108,196,0.18);
+  }
+  body.dark {
+    --bg: #0d1b2e;
+    --card: #142035;
+    --text: #e0eeff;
+    --text-muted: #7aaad0;
+    --border: #1e3a5c;
+    --blue-light: #0c2a4a;
+    --blue-dark: #85b7eb;
+    --shadow: 0 2px 16px rgba(0,0,0,0.4);
+    --shadow-hover: 0 6px 24px rgba(0,0,0,0.5);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background .3s, color .3s;
+  }
+  .app { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+  .topbar {
+    display: flex; justify-content: flex-end; align-items: center;
+    gap: .6rem; margin-bottom: 1.5rem; font-size: 13px; color: var(--text-muted);
+  }
+  .toggle { position: relative; width: 42px; height: 22px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 99px; transition: .25s;
+  }
+  .slider::before {
+    content: ""; position: absolute; left: 3px; top: 3px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: .25s;
+  }
+  .toggle input:checked + .slider { background: var(--blue); }
+  .toggle input:checked + .slider::before { transform: translateX(20px); }
+  .header { text-align: center; margin-bottom: 2rem; animation: fadeDown .5s ease both; }
+  .mailbox-emoji { font-size: 64px; line-height: 1; display: block; margin-bottom: .5rem; animation: bounce 2s ease infinite; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: scale(.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .header h1 { font-family: 'Fredoka One', cursive; font-size: 38px; color: var(--blue); letter-spacing: .5px; }
+  .header p { font-size: 15px; color: var(--text-muted); margin-top: .4rem; }
+  .counters {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: .75rem; margin-bottom: 1.75rem; animation: fadeUp .5s .1s ease both;
+  }
+  .stat {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: .8rem .5rem; text-align: center;
+    box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
+  }
+  .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .stat-n { font-size: 26px; font-weight: 800; color: var(--blue); line-height: 1; }
+  .stat-l { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .form-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.75rem; margin-bottom: 1.75rem;
+    box-shadow: var(--shadow); animation: fadeUp .5s .2s ease both;
+  }
+  .form-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 1.25rem; color: var(--text); display: flex; align-items: center; gap: .5rem; }
+  .field { margin-bottom: 1.1rem; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: .45rem; text-transform: uppercase; letter-spacing: .4px; }
+  input[type=text], textarea {
+    width: 100%; padding: .7rem 1rem; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 14px; font-family: 'Nunito', sans-serif;
+    background: var(--bg); color: var(--text); transition: border .2s, box-shadow .2s; outline: none;
+  }
+  input[type=text]:focus, textarea:focus {
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 0 3px rgba(55,138,221,0.15);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+  .cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .cat-btn {
+    padding: .6rem .5rem; border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--bg); cursor: pointer; font-size: 13px;
+    font-family: 'Nunito', sans-serif; font-weight: 600; color: var(--text-muted);
+    transition: all .2s; display: flex; align-items: center; gap: .4rem; justify-content: center;
+  }
+  .cat-btn:hover { border-color: var(--blue-mid); background: var(--blue-light); color: var(--blue); transform: translateY(-1px); }
+  .cat-btn.active { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+  .cat-btn .icon { font-size: 18px; }
+  .send-btn {
+    width: 100%; padding: .85rem; background: var(--blue); color: #fff;
+    border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+    font-family: 'Nunito', sans-serif; cursor: pointer; transition: all .2s;
+    margin-top: .5rem; display: flex; align-items: center; justify-content: center; gap: .5rem;
+  }
+  .send-btn:hover { background: var(--blue-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(26,108,196,0.35); }
+  .send-btn:active { transform: scale(.98); }
+  .toast {
+    background: #eaf3de; border: 1px solid #c0dd97; border-radius: 10px;
+    padding: .75rem 1rem; font-size: 14px; font-weight: 600; color: #3b6d11;
+    text-align: center; margin-top: .85rem; display: none; animation: toastIn .35s ease;
+  }
+  .toast.show { display: block; }
+  .msgs-section { animation: fadeUp .5s .3s ease both; }
+  .msgs-section h2 { font-size: 18px; font-weight: 700; margin-bottom: 1rem; color: var(--text); display: flex; align-items: center; gap: .5rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .filter-btn {
+    padding: .38rem .9rem; border: 1.5px solid var(--border); border-radius: 99px;
+    font-size: 13px; font-weight: 600; font-family: 'Nunito', sans-serif;
+    background: var(--card); color: var(--text-muted); cursor: pointer; transition: all .2s;
+  }
+  .filter-btn:hover { border-color: var(--blue-mid); color: var(--blue); }
+  .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .msgs-grid { display: flex; flex-direction: column; gap: .8rem; }
+  .empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 15px; }
+  .empty .big { font-size: 48px; display: block; margin-bottom: .5rem; }
+  .msg-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem 1.25rem;
+    box-shadow: var(--shadow); border-left: 5px solid #ccc;
+    transition: transform .2s, box-shadow .2s; animation: cardIn .3s ease;
+  }
+  .msg-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+  .msg-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: .4px; }
+  .msg-name { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-left: auto; }
+  .msg-body { font-size: 14px; line-height: 1.6; color: var(--text); word-break: break-word; }
+  .msg-time { font-size: 11px; color: var(--text-muted); margin-top: .5rem; font-weight: 600; }
+  .footer { text-align: center; margin-top: 2.5rem; font-size: 12px; color: var(--text-muted); opacity: .7; }
+  @media (max-width: 480px) {
+    .header h1 { font-size: 30px; }
+    .counters { grid-template-columns: repeat(2, 1fr); }
+    .cats { grid-template-columns: repeat(2, 1fr); }
+    .form-card { padding: 1.25rem; }
+    .stat-n { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <span>🌙</span>
+    <label class="toggle">
+      <input type="checkbox" id="dm" onchange="toggleDark()">
+      <span class="slider"></span>
+    </label>
+    <span>Modo oscuro</span>
+  </div>
+  <div class="header">
+    <span class="mailbox-emoji">📬</span>
+    <h1>Buzón del Salón</h1>
+    <p>Comparte ideas, sugerencias o felicitaciones con tu clase</p>
+  </div>
+  <div class="counters">
+    <div class="stat"><div class="stat-n" id="totalN">0</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n" id="sugN">0</div><div class="stat-l">Sugerencias</div></div>
+    <div class="stat"><div class="stat-n" id="felN">0</div><div class="stat-l">Felicitaciones</div></div>
+    <div class="stat"><div class="stat-n" id="ideaN">0</div><div class="stat-l">Ideas</div></div>
+  </div>
+  <div class="form-card">
+    <h2><span>✏️</span> Nuevo mensaje</h2>
+    <div class="field">
+      <label for="fname">Tu nombre (opcional)</label>
+      <input type="text" id="fname" placeholder="Anónimo..." maxlength="40">
+    </div>
+    <div class="field">
+      <label>Categoría</label>
+      <div class="cats">
+        <button class="cat-btn active" data-cat="Sugerencia" onclick="selectCat(this)"><span class="icon">💡</span> Sugerencia</button>
+        <button class="cat-btn" data-cat="Problema" onclick="selectCat(this)"><span class="icon">⚠️</span> Problema</button>
+        <button class="cat-btn" data-cat="Felicitación" onclick="selectCat(this)"><span class="icon">⭐</span> Felicitación</button>
+        <button class="cat-btn" data-cat="Idea" onclick="selectCat(this)"><span class="icon">🚀</span> Idea</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fmsg">Tu mensaje</label>
+      <textarea id="fmsg" placeholder="Escribe aquí tu mensaje, idea o sugerencia..." maxlength="400"></textarea>
+    </div>
+    <button class="send-btn" onclick="sendMsg()"><span>📨</span> Enviar mensaje</button>
+    <div class="toast" id="toast">✅ ¡Mensaje enviado con éxito! Gracias por compartir.</div>
+  </div>
+  <div class="msgs-section">
+    <h2><span>💬</span> Mensajes del salón</h2>
+    <div class="filters">
+      <button class="filter-btn active" data-f="Todos" onclick="setFilter(this)">Todos</button>
+      <button class="filter-btn" data-f="Sugerencia" onclick="setFilter(this)">💡 Sugerencias</button>
+      <button class="filter-btn" data-f="Problema" onclick="setFilter(this)">⚠️ Problemas</button>
+      <button class="filter-btn" data-f="Felicitación" onclick="setFilter(this)">⭐ Felicitaciones</button>
+      <button class="filter-btn" data-f="Idea" onclick="setFilter(this)">🚀 Ideas</button>
+    </div>
+    <div class="msgs-grid" id="msgList">
+      <div class="empty"><span class="big">📭</span>Aún no hay mensajes. ¡Sé el primero en escribir!</div>
+    </div>
+  </div>
+  <div class="footer">Buzón del Salón · Hecho con ❤️ para estudiantes</div>
+</div>
+<script>
+  const CATS = {
+    "Sugerencia":  { color: "#185fa5", bg: "#e6f1fb", border: "#1a6cc4", icon: "💡" },
+    "Problema":    { color: "#a32d2d", bg: "#fcebeb", border: "#e24b4a", icon: "⚠️" },
+    "Felicitación":{ color: "#3b6d11", bg: "#eaf3de", border: "#639922", icon: "⭐" },
+    "Idea":        { color: "#854f0b", bg: "#faeeda", border: "#ba7517", icon: "🚀" }
+  };
+  let msgs = [], selCat = "Sugerencia", activeFilter = "Todos";
+
+  function selectCat(btn) {
+    document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    selCat = btn.dataset.cat;
+  }
+  function sendMsg() {
+    const nameInput = document.getElementById("fname");
+    const msgInput  = document.getElementById("fmsg");
+    const name = nameInput.value.trim() || "Anónimo";
+    const body = msgInput.value.trim();
+    if (!body) {
+      msgInput.focus();
+      msgInput.style.borderColor = "#e24b4a";
+      setTimeout(() => msgInput.style.borderColor = "", 1500);
+      return;
+    }
+    const now  = new Date();
+    const time = now.toLocaleTimeString("es-CO", { hour:"2-digit", minute:"2-digit" })
+               + " · " + now.toLocaleDateString("es-CO", { day:"numeric", month:"short" });
+    msgs.unshift({ name, body, cat: selCat, time });
+    msgInput.value = "";
+    nameInput.value = "";
+    const toast = document.getElementById("toast");
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3000);
+    updateCounters();
+    renderMsgs();
+  }
+  function updateCounters() {
+    document.getElementById("totalN").textContent = msgs.length;
+    document.getElementById("sugN").textContent   = msgs.filter(m => m.cat === "Sugerencia").length;
+    document.getElementById("felN").textContent   = msgs.filter(m => m.cat === "Felicitación").length;
+    document.getElementById("ideaN").textContent  = msgs.filter(m => m.cat === "Idea").length;
+  }
+  function setFilter(btn) {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.f;
+    renderMsgs();
+  }
+  function renderMsgs() {
+    const list  = document.getElementById("msgList");
+    const shown = activeFilter === "Todos" ? msgs : msgs.filter(m => m.cat === activeFilter);
+    if (!shown.length) {
+      list.innerHTML = `<div class="empty"><span class="big">📭</span>No hay mensajes en esta categoría todavía.</div>`;
+      return;
+    }
+    list.innerHTML = shown.map(m => {
+      const c = CATS[m.cat];
+      const safe = m.body.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return `<div class="msg-card" style="border-left-color:${c.border}">
+        <div class="msg-header">
+          <span class="badge" style="background:${c.bg};color:${c.color}">${c.icon} ${m.cat}</span>
+          <span class="msg-name">👤 ${m.name}</span>
+        </div>
+        <div class="msg-body">${safe}</div>
+        <div class="msg-time">🕐 ${m.time}</div>
+      </div>`;
+    }).join("");
+  }
+  function toggleDark() {
+    document.body.classList.toggle("dark", document.getElementById("dm").checked);
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("fmsg").addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.ctrlKey) sendMsg();
+    });
+  });
+</script>
+</body>
+</html>
