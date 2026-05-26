@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Salón App</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Fredoka+One&display=swap" rel="stylesheet">
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --blue:#1a6cc4;--blue-l:#e6f1fb;--blue-m:#378add;--blue-d:#042c53;--blue-h:#185fa5;
+  --bg:#f0f6ff;--card:#fff;--text:#1a2a3a;--muted:#5a7a9a;--border:#d0e4f7;
+  --r:14px;--shadow:0 2px 16px rgba(26,108,196,.10);--shadow2:0 6px 24px rgba(26,108,196,.18);
+  --green:#2d9e6b;--green-l:#e6f7f1;--red:#e24b4a;--red-l:#fcebeb;
+  --amber:#ba7517;--amber-l:#faeeda;--purple:#6c47d8;--purple-l:#f0ecff;
+}
+body.dark{
+  --bg:#0d1b2e;--card:#142035;--text:#e0eeff;--muted:#7aaad0;--border:#1e3a5c;
+  --blue-l:#0c2a4a;--blue-d:#85b7eb;--shadow:0 2px 16px rgba(0,0,0,.4);
+  --green-l:#0a2a1e;--red-l:#2a0f0f;--amber-l:#2a1800;--purple-l:#1a1030;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s;overflow-x:hidden}
+.bg-anim{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-anim span{position:absolute;border-radius:50%;opacity:.05;animation:float linear infinite}
+.bg-anim span:nth-child(1){width:120px;height:120px;background:var(--blue);left:5%;animation-duration:18s}
+.bg-anim span:nth-child(2){width:80px;height:80px;background:var(--green);left:25%;animation-duration:22s;animation-delay:3s}
+.bg-anim span:nth-child(3){width:160px;height:160px;background:var(--purple);left:50%;animation-duration:15s;animation-delay:1s}
+.bg-anim span:nth-child(4){width:60px;height:60px;background:var(--blue);left:75%;animation-duration:20s;animation-delay:5s}
+.bg-anim span:nth-child(5){width:100px;height:100px;background:var(--amber);left:90%;animation-duration:25s;animation-delay:2s}
+@keyframes float{0%{transform:translateY(110vh) rotate(0deg)}100%{transform:translateY(-10vh) rotate(360deg)}}
+.app{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:1rem 1rem 3rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.topbar-left{display:flex;align-items:center;gap:.75rem}
+.app-logo{font-family:'Fredoka One',cursive;font-size:22px;color:var(--blue)}
+.online-badge{background:var(--green-l);color:var(--green);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700;border:1px solid #9fe1cb;display:flex;align-items:center;gap:4px}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.toggle-dm{display:flex;align-items:center;gap:.4rem;font-size:13px;color:var(--muted)}
+.toggle{position:relative;width:38px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.tslider{position:absolute;inset:0;background:var(--border);border-radius:99px;transition:.25s}
+.tslider::before{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.25s}
+.toggle input:checked+.tslider{background:var(--blue)}
+.toggle input:checked+.tslider::before{transform:translateX(18px)}
+.profile-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem;box-shadow:var(--shadow);flex-wrap:wrap}
+.avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.avatar:hover{transform:scale(1.08)}
+.profile-info{flex:1}
+.profile-name{font-size:16px;font-weight:700}
+.profile-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.profile-edit{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.profile-edit input{padding:.3rem .6rem;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);width:140px}
+.btn-sm{padding:.3rem .8rem;border-radius:8px;border:1px solid var(--border);background:var(--blue);color:#fff;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s}
+.btn-sm:hover{background:var(--blue-h)}
+.rank-badge{background:var(--amber-l);color:var(--amber);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;border:1px solid #fac775}
+.nav{display:flex;gap:.4rem;margin-bottom:1rem;flex-wrap:wrap}
+.nav-btn{padding:.5rem 1rem;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.3rem}
+.nav-btn:hover{border-color:var(--blue-m);color:var(--blue)}
+.nav-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.section{display:none;animation:fadeUp .3s ease}
+.section.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card h2{font-size:17px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.4rem}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:1rem}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:.7rem .5rem;text-align:center;box-shadow:var(--shadow);transition:transform .2s}
+.stat:hover{transform:translateY(-2px)}
+.stat-n{font-size:24px;font-weight:800;color:var(--blue)}
+.stat-l{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.field{margin-bottom:.9rem}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.4px}
+input[type=text],input[type=date],textarea,select{width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border .2s,box-shadow .2s}
+input[type=text]:focus,input[type=date]:focus,textarea:focus,select:focus{border-color:var(--blue-m);box-shadow:0 0 0 3px rgba(55,138,221,.15)}
+textarea{resize:vertical;min-height:80px}
+.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+.cat-btn{padding:.55rem;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);cursor:pointer;font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;color:var(--muted);transition:all .2s;display:flex;align-items:center;gap:.3rem;justify-content:center}
+.cat-btn:hover,.cat-btn.active{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.send-btn{width:100%;padding:.8rem;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.4rem}
+.send-btn:hover{background:var(--blue-h);transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,108,196,.3)}
+.send-btn:active{transform:scale(.98)}
+.toast{background:var(--green-l);border:1px solid #c0dd97;border-radius:10px;padding:.65rem 1rem;font-size:13px;font-weight:700;color:var(--green);text-align:center;margin-top:.75rem;display:none}
+.toast.show{display:block;animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.filters{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.85rem}
+.filter-btn{padding:.3rem .8rem;border:1.5px solid var(--border);border-radius:99px;font-size:12px;font-weight:700;font-family:'Nunito',sans-serif;background:var(--card);color:var(--muted);cursor:pointer;transition:all .2s}
+.filter-btn:hover{border-color:var(--blue-m);color:var(--blue)}
+.filter-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.msgs-grid{display:flex;flex-direction:column;gap:.65rem}
+.msg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:.9rem 1.1rem;border-left:4px solid #ccc;transition:transform .2s,box-shadow .2s;animation:cardIn .3s ease}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-card:hover{transform:translateY(-2px);box-shadow:var(--shadow2)}
+.msg-header{display:flex;align-items:center;gap:.4rem;margin-bottom:.45rem;flex-wrap:wrap}
+.badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.3px}
+.msg-name{font-size:12px;font-weight:700;color:var(--muted);margin-left:auto}
+.msg-body{font-size:14px;line-height:1.55;word-break:break-word}
+.msg-time{font-size:11px;color:var(--muted);margin-top:.35rem;font-weight:600}
+.empty{text-align:center;padding:2rem;color:var(--muted);font-size:14px}
+.empty .big{font-size:44px;display:block;margin-bottom:.4rem}
+/* CHAT */
+.chat-notice{background:var(--blue-l);border:1px solid var(--border);border-radius:10px;padding:.6rem 1rem;font-size:13px;font-weight:700;color:var(--blue);text-align:center;margin-bottom:.75rem}
+.chat-rooms{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem}
+.room-btn{padding:.35rem .9rem;border-radius:99px;border:1.5px solid var(--border);background:var(--card);color:var(--muted);font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s}
+.room-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chat-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:.75rem;height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;scroll-behavior:smooth}
+.bubble-wrap{display:flex;gap:.5rem;animation:bubbleIn .25s ease}
+@keyframes bubbleIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.bubble-wrap.me{flex-direction:row-reverse}
+.bubble-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;align-self:flex-end}
+.bubble{max-width:72%;padding:.55rem .85rem;border-radius:16px;font-size:14px;line-height:1.5;position:relative;word-break:break-word}
+.bubble-wrap:not(.me) .bubble{background:var(--card);border:1px solid var(--border);border-bottom-left-radius:4px}
+.bubble-wrap.me .bubble{background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+.bubble-meta{font-size:10px;opacity:.65;margin-top:3px;text-align:right}
+.bubble-wrap:not(.me) .bubble-meta{text-align:left}
+.del-btn{background:none;border:none;cursor:pointer;font-size:11px;color:rgba(255,255,255,.6);padding:0;margin-left:4px}
+.del-btn:hover{color:#fff}
+.chat-input-row{display:flex;gap:.5rem;align-items:flex-end}
+.chat-input-row textarea{flex:1;min-height:44px;max-height:100px;padding:.55rem .8rem;font-size:14px;border-radius:12px}
+.emoji-row{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.4rem}
+.emoji-btn{background:none;border:1px solid var(--border);border-radius:8px;padding:3px 6px;cursor:pointer;font-size:16px;transition:transform .15s}
+.emoji-btn:hover{transform:scale(1.2)}
+.chat-send{padding:.55rem 1rem;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap}
+.chat-send:hover{background:var(--blue-h)}
+/* TASKS */
+.tasks-list{display:flex;flex-direction:column;gap:.6rem}
+.task-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow);transition:transform .2s;animation:cardIn .3s ease}
+.task-item:hover{transform:translateY(-2px)}
+.task-date{background:var(--blue-l);border-radius:10px;padding:.4rem .6rem;text-align:center;min-width:48px;border:1px solid var(--border)}
+.task-date .td{font-size:18px;font-weight:800;color:var(--blue);line-height:1}
+.task-date .tm{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.task-info{flex:1}
+.task-title{font-size:14px;font-weight:700}
+.task-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.task-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;border-radius:6px;transition:all .2s}
+.task-del:hover{background:var(--red-l);color:var(--red)}
+.urgent{border-left:4px solid var(--red)}.soon{border-left:4px solid var(--amber)}.ok{border-left:4px solid var(--green)}
+/* POLLS */
+.poll-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;margin-bottom:.75rem;box-shadow:var(--shadow);animation:cardIn .3s ease}
+.poll-q{font-size:15px;font-weight:700;margin-bottom:.75rem}
+.poll-options{display:flex;flex-direction:column;gap:.45rem}
+.poll-opt{display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.4rem .6rem;border-radius:8px;transition:background .2s;border:1px solid var(--border);background:var(--bg)}
+.poll-opt:hover{background:var(--blue-l)}
+.poll-opt input{accent-color:var(--blue)}
+.poll-bar-wrap{margin-top:.75rem}
+.poll-bar-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;font-size:13px}
+.poll-bar{flex:1;height:10px;background:var(--border);border-radius:99px;overflow:hidden}
+.poll-bar-fill{height:100%;background:var(--blue);border-radius:99px;transition:width .5s ease}
+.poll-pct{font-weight:700;color:var(--blue);min-width:32px;text-align:right;font-size:12px}
+.vote-btn{margin-top:.6rem;padding:.45rem 1.2rem;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer}
+/* ANNOUNCEMENTS */
+.ann-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.65rem;border-left:4px solid var(--blue);box-shadow:var(--shadow);animation:cardIn .3s ease}
+.ann-header{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem}
+.ann-tag{background:var(--blue-l);color:var(--blue);border-radius:99px;padding:2px 9px;font-size:11px;font-weight:800}
+.ann-author{font-size:12px;color:var(--muted);margin-left:auto}
+.ann-body{font-size:14px;line-height:1.55}
+.ann-time{font-size:11px;color:var(--muted);margin-top:.3rem;font-weight:600}
+/* RANKING */
+.rank-list{display:flex;flex-direction:column;gap:.5rem}
+.rank-item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow);transition:transform .2s}
+.rank-item:hover{transform:translateX(4px)}
+.rank-pos{font-size:20px;font-weight:800;min-width:30px;text-align:center}
+.rank-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+.rank-name{flex:1;font-size:14px;font-weight:700}
+.rank-pts{font-size:13px;font-weight:800;color:var(--blue)}
+.gold{color:#f0a500}.silver{color:#8a8a8a}.bronze{color:#c46a1f}
+/* LOADING */
+.fb-status{text-align:center;padding:.5rem;font-size:12px;color:var(--muted);font-weight:600}
+.fb-status.ok{color:var(--green)}.fb-status.err{color:var(--red)}
+@media(max-width:520px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .cats{grid-template-columns:repeat(2,1fr)}
+  .nav-btn span{display:none}
+  .chat-box{height:260px}
+}
+</style>
+</head>
+<body>
+<div class="bg-anim" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="app-logo">🏫 Mi Salón</div>
+      <div class="online-badge"><span class="online-dot"></span><span id="onlineCount">...</span> en línea</div>
+    </div>
+    <div class="toggle-dm">🌙
+      <label class="toggle"><input type="checkbox" id="dm" onchange="toggleDark()"><span class="tslider"></span></label>
+    </div>
+  </div>
+
+  <div class="fb-status" id="fbStatus">🔄 Conectando con Firebase...</div>
+
+  <div class="profile-bar">
+    <div class="avatar" id="mainAvatar" onclick="randomAvatar()" title="Clic para cambiar color">🎒</div>
+    <div class="profile-info">
+      <div class="profile-name" id="displayName">Mi Nombre</div>
+      <div class="profile-sub">Estudiante · <span id="userPoints">0</span> puntos</div>
+      <div class="profile-edit">
+        <input type="text" id="nameInput" placeholder="Tu nombre..." maxlength="25">
+        <input type="text" id="iconInput" placeholder="Emoji 😎" maxlength="4">
+        <button class="btn-sm" onclick="saveProfile()">Guardar</button>
+      </div>
+    </div>
+    <div class="rank-badge" id="rankBadge">🌟 Novato</div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('buzon',this)">📬 <span>Buzón</span></button>
+    <button class="nav-btn" onclick="showSection('chat',this)">💬 <span>Chat</span></button>
+    <button class="nav-btn" onclick="showSection('calendar',this)">📅 <span>Tareas</span></button>
+    <button class="nav-btn" onclick="showSection('polls',this)">📊 <span>Encuestas</span></button>
+    <button class="nav-btn" onclick="showSection('announcements',this)">📢 <span>Anuncios</span></button>
+    <button class="nav-btn" onclick="showSection('ranking',this)">🏆 <span>Ranking</span></button>
+  </div>
+
+  <!-- BUZÓN -->
+  <div id="sec-buzon" class="section active">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-n" id="totalN">0</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n" id="sugN">0</div><div class="stat-l">Sugerencias</div></div>
+      <div class="stat"><div class="stat-n" id="felN">0</div><div class="stat-l">Felicit.</div></div>
+      <div class="stat"><div class="stat-n" id="ideaN">0</div><div class="stat-l">Ideas</div></div>
+    </div>
+    <div class="card">
+      <h2>✏️ Nuevo mensaje</h2>
+      <div class="field"><label>Categoría</label>
+        <div class="cats">
+          <button class="cat-btn active" data-cat="Sugerencia" onclick="selectCat(this)">💡 Sugerencia</button>
+          <button class="cat-btn" data-cat="Problema" onclick="selectCat(this)">⚠️ Problema</button>
+          <button class="cat-btn" data-cat="Felicitación" onclick="selectCat(this)">⭐ Felicitación</button>
+          <button class="cat-btn" data-cat="Idea" onclick="selectCat(this)">🚀 Idea</button>
+        </div>
+      </div>
+      <div class="field"><label>Tu mensaje</label>
+        <textarea id="fmsg" placeholder="Escribe tu mensaje..." maxlength="400"></textarea>
+      </div>
+      <button class="send-btn" onclick="sendBuzon()">📨 Enviar mensaje</button>
+      <div class="toast" id="buzonToast">✅ ¡Mensaje enviado y guardado para todos!</div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-f="Todos" onclick="setFilter(this)">Todos</button>
+      <button class="filter-btn" data-f="Sugerencia" onclick="setFilter(this)">💡 Sugerencias</button>
+      <button class="filter-btn" data-f="Problema" onclick="setFilter(this)">⚠️ Problemas</button>
+      <button class="filter-btn" data-f="Felicitación" onclick="setFilter(this)">⭐ Felicitaciones</button>
+      <button class="filter-btn" data-f="Idea" onclick="setFilter(this)">🚀 Ideas</button>
+    </div>
+    <div class="msgs-grid" id="msgList"><div class="empty"><span class="big">📭</span>Cargando mensajes...</div></div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="sec-chat" class="section">
+    <div class="chat-notice">💬 Usa el chat con respeto 😊 · Aquí todos aprendemos juntos</div>
+    <div class="chat-rooms">
+      <button class="room-btn active" data-room="General" onclick="setRoom(this)">🌐 General</button>
+      <button class="room-btn" data-room="Tareas" onclick="setRoom(this)">📚 Tareas</button>
+      <button class="room-btn" data-room="Matematicas" onclick="setRoom(this)">➗ Mates</button>
+      <button class="room-btn" data-room="Ciencias" onclick="setRoom(this)">🔬 Ciencias</button>
+    </div>
+    <div class="chat-box" id="chatBox"><div class="empty" style="margin:auto">Cargando chat... 💬</div></div>
+    <div class="emoji-row">
+      <button class="emoji-btn" onclick="addEmoji('😊')">😊</button>
+      <button class="emoji-btn" onclick="addEmoji('👍')">👍</button>
+      <button class="emoji-btn" onclick="addEmoji('🎉')">🎉</button>
+      <button class="emoji-btn" onclick="addEmoji('❓')">❓</button>
+      <button class="emoji-btn" onclick="addEmoji('📝')">📝</button>
+      <button class="emoji-btn" onclick="addEmoji('🤔')">🤔</button>
+      <button class="emoji-btn" onclick="addEmoji('✅')">✅</button>
+      <button class="emoji-btn" onclick="addEmoji('❤️')">❤️</button>
+      <button class="emoji-btn" onclick="addEmoji('🔥')">🔥</button>
+      <button class="emoji-btn" onclick="addEmoji('😂')">😂</button>
+    </div>
+    <div class="chat-input-row">
+      <textarea id="chatInput" placeholder="Escribe un mensaje..." maxlength="300" onkeydown="chatEnter(event)"></textarea>
+      <button class="chat-send" onclick="sendChat()">Enviar ➤</button>
+    </div>
+  </div>
+
+  <!-- TAREAS -->
+  <div id="sec-calendar" class="section">
+    <div class="card">
+      <h2>📅 Nueva tarea o examen</h2>
+      <div class="field"><label>Título</label><input type="text" id="taskTitle" placeholder="Ej: Examen de Matemáticas..." maxlength="60"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="field"><label>Fecha</label><input type="date" id="taskDate"></div>
+        <div class="field"><label>Materia</label>
+          <select id="taskSubject"><option>Matemáticas</option><option>Ciencias</option><option>Español</option><option>Historia</option><option>Inglés</option><option>Ed. Física</option><option>Otra</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Tipo</label>
+        <select id="taskType"><option>Tarea</option><option>Examen</option><option>Proyecto</option><option>Quiz</option></select>
+      </div>
+      <button class="send-btn" onclick="addTask()">📌 Agregar</button>
+      <div class="toast" id="taskToast">✅ ¡Agregado al calendario para todos!</div>
+    </div>
+    <div class="tasks-list" id="taskList"><div class="empty"><span class="big">📅</span>Cargando tareas...</div></div>
+  </div>
+
+  <!-- ENCUESTAS -->
+  <div id="sec-polls" class="section">
+    <div class="card">
+      <h2>📊 Nueva encuesta</h2>
+      <div class="field"><label>Pregunta</label><input type="text" id="pollQ" placeholder="Ej: ¿Cuál materia es más difícil?" maxlength="100"></div>
+      <div class="field"><label>Opción 1</label><input type="text" id="pollO1" placeholder="Opción A..." maxlength="50"></div>
+      <div class="field"><label>Opción 2</label><input type="text" id="pollO2" placeholder="Opción B..." maxlength="50"></div>
+      <div class="field"><label>Opción 3 (opcional)</label><input type="text" id="pollO3" placeholder="Opción C..." maxlength="50"></div>
+      <button class="send-btn" onclick="createPoll()">📊 Crear encuesta</button>
+      <div class="toast" id="pollToast">✅ ¡Encuesta creada para todos!</div>
+    </div>
+    <div id="pollList"><div class="empty"><span class="big">📊</span>Cargando encuestas...</div></div>
+  </div>
+
+  <!-- ANUNCIOS -->
+  <div id="sec-announcements" class="section">
+    <div class="card">
+      <h2>📢 Nuevo anuncio</h2>
+      <div class="field"><label>Tipo</label>
+        <select id="annType"><option>📢 Anuncio</option><option>⚠️ Urgente</option><option>📚 Tarea</option><option>🎉 Evento</option></select>
+      </div>
+      <div class="field"><label>Mensaje</label><textarea id="annMsg" placeholder="Escribe el anuncio..." maxlength="300"></textarea></div>
+      <div class="field"><label>¿Quién lo publica?</label>
+        <select id="annRole"><option>👩‍🏫 Profesor(a)</option><option>👨‍🎓 Delegado(a)</option><option>📋 Coordinación</option></select>
+      </div>
+      <button class="send-btn" onclick="sendAnn()">📢 Publicar anuncio</button>
+      <div class="toast" id="annToast">✅ ¡Anuncio publicado para todos!</div>
+    </div>
+    <div id="annList"><div class="empty"><span class="big">📢</span>Cargando anuncios...</div></div>
+  </div>
+
+  <!-- RANKING -->
+  <div id="sec-ranking" class="section">
+    <div class="card">
+      <h2>🏆 Estudiantes más activos</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Puntos por mensajes, ideas y encuestas.</p>
+      <div class="rank-list" id="rankList"><div class="empty"><span class="big">🏆</span>Cargando ranking...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBf9GQsuA7GP2a3lLrz7AnfUUynGpbT1V0",
+  authDomain: "mi-salon-app-7dfb2.firebaseapp.com",
+  databaseURL: "https://mi-salon-app-7dfb2-default-rtdb.firebaseio.com",
+  projectId: "mi-salon-app-7dfb2",
+  storageBucket: "mi-salon-app-7dfb2.firebasestorage.app",
+  messagingSenderId: "592467720079",
+  appId: "1:592467720079:web:5748df51b859364c60bdfa"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ===== ESTADO LOCAL =====
+const CATS = {
+  'Sugerencia':  {color:'#185fa5',bg:'#e6f1fb',border:'#1a6cc4',icon:'💡'},
+  'Problema':    {color:'#a32d2d',bg:'#fcebeb',border:'#e24b4a',icon:'⚠️'},
+  'Felicitación':{color:'#3b6d11',bg:'#eaf3de',border:'#639922',icon:'⭐'},
+  'Idea':        {color:'#854f0b',bg:'#faeeda',border:'#ba7517',icon:'🚀'}
+};
+const COLORS = ['#1a6cc4','#2d9e6b','#e24b4a','#ba7517','#6c47d8','#c2185b','#00838f'];
+const RANKS = [
+  {min:0,label:'🌟 Novato'},{min:10,label:'📚 Aprendiz'},{min:25,label:'✨ Activo'},
+  {min:50,label:'🏅 Participante'},{min:100,label:'🥇 Estrella'},{min:200,label:'🏆 Leyenda'}
+];
+
+let user = JSON.parse(localStorage.getItem('salonUser')||'{}');
+if (!user.name) user = {name:'Anónimo',icon:'🎒',color:'#1a6cc4',points:0};
+let selCat = 'Sugerencia';
+let activeFilter = 'Todos';
+let activeRoom = 'General';
+let votedPolls = JSON.parse(localStorage.getItem('votedPolls')||'[]');
+
+// ===== FIREBASE STATUS =====
+db.ref('.info/connected').on('value', snap => {
+  const el = document.getElementById('fbStatus');
+  if (snap.val()) {
+    el.textContent = '🟢 Conectado — los mensajes se guardan para todos en tiempo real';
+    el.className = 'fb-status ok';
+  } else {
+    el.textContent = '🔴 Sin conexión — verificá tu internet';
+    el.className = 'fb-status err';
+  }
+});
+
+// ===== DARK MODE =====
+function toggleDark() { document.body.classList.toggle('dark', document.getElementById('dm').checked); }
+
+// ===== SECTIONS =====
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== PROFILE =====
+function saveProfile() {
+  const n = document.getElementById('nameInput').value.trim();
+  const ic = document.getElementById('iconInput').value.trim();
+  if (n) user.name = n;
+  if (ic) user.icon = ic;
+  localStorage.setItem('salonUser', JSON.stringify(user));
+  updateProfileUI();
+}
+function randomAvatar() {
+  user.color = COLORS[Math.floor(Math.random()*COLORS.length)];
+  localStorage.setItem('salonUser', JSON.stringify(user));
+  updateProfileUI();
+}
+function updateProfileUI() {
+  const av = document.getElementById('mainAvatar');
+  av.textContent = user.icon||'🎒';
+  av.style.background = user.color;
+  document.getElementById('displayName').textContent = user.name;
+  document.getElementById('userPoints').textContent = user.points||0;
+  const rank = RANKS.slice().reverse().find(r=>(user.points||0)>=r.min)||RANKS[0];
+  document.getElementById('rankBadge').textContent = rank.label;
+}
+function addPoints(n) {
+  user.points = (user.points||0) + n;
+  localStorage.setItem('salonUser', JSON.stringify(user));
+  updateProfileUI();
+  // Save to Firebase ranking
+  db.ref('ranking/'+user.name).set({pts: user.points, color: user.color, icon: user.icon});
+}
+
+// ===== SOUND =====
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880; g.gain.setValueAtTime(.1, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+.25);
+    o.start(); o.stop(ctx.currentTime+.25);
+  } catch(e) {}
+}
+
+// ===== TOAST =====
+function showToast(id) {
+  const t = document.getElementById(id);
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ===== UTILS =====
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('es-CO',{day:'numeric',month:'short'});
+}
+function safe(s) { return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== BUZÓN =====
+function selectCat(btn) {
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); selCat = btn.dataset.cat;
+}
+function sendBuzon() {
+  const body = document.getElementById('fmsg').value.trim();
+  if (!body) { document.getElementById('fmsg').focus(); return; }
+  db.ref('buzon').push({
+    name: user.name, body, cat: selCat,
+    color: user.color, icon: user.icon,
+    ts: Date.now()
+  });
+  document.getElementById('fmsg').value = '';
+  showToast('buzonToast');
+  addPoints(3);
+}
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeFilter = btn.dataset.f;
+}
+
+// Listen buzón in real-time
+db.ref('buzon').orderByChild('ts').on('value', snap => {
+  const msgs = [];
+  snap.forEach(c => msgs.unshift({...c.val(), id: c.key}));
+  // Update counters
+  document.getElementById('totalN').textContent = msgs.length;
+  document.getElementById('sugN').textContent = msgs.filter(m=>m.cat==='Sugerencia').length;
+  document.getElementById('felN').textContent = msgs.filter(m=>m.cat==='Felicitación').length;
+  document.getElementById('ideaN').textContent = msgs.filter(m=>m.cat==='Idea').length;
+  // Render
+  const shown = activeFilter==='Todos' ? msgs : msgs.filter(m=>m.cat===activeFilter);
+  const list = document.getElementById('msgList');
+  if (!shown.length) { list.innerHTML='<div class="empty"><span class="big">📭</span>No hay mensajes aquí.</div>'; return; }
+  list.innerHTML = shown.map(m=>{
+    const c = CATS[m.cat]||CATS['Sugerencia'];
+    return `<div class="msg-card" style="border-left-color:${c.border}">
+      <div class="msg-header">
+        <span class="badge" style="background:${c.bg};color:${c.color}">${c.icon} ${m.cat}</span>
+        <span class="msg-name">👤 ${safe(m.name)}</span>
+      </div>
+      <div class="msg-body">${safe(m.body)}</div>
+      <div class="msg-time">🕐 ${fmtTime(m.ts)}</div>
+    </div>`;
+  }).join('');
+});
+
+// Re-render on filter change (override setFilter)
+const origSetFilter = setFilter;
+
+// ===== CHAT =====
+function setRoom(btn) {
+  document.querySelectorAll('.room-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeRoom = btn.dataset.room;
+  listenChat();
+}
+function addEmoji(e) { const i=document.getElementById('chatInput'); i.value+=e; i.focus(); }
+function chatEnter(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
+function sendChat() {
+  const body = document.getElementById('chatInput').value.trim();
+  if (!body) return;
+  db.ref('chat/'+activeRoom).push({
+    name: user.name, body, color: user.color, icon: user.icon, ts: Date.now()
+  });
+  document.getElementById('chatInput').value = '';
+  addPoints(1);
+  playBeep();
+}
+function deleteMsg(id) {
+  db.ref('chat/'+activeRoom+'/'+id).remove();
+}
+
+let chatListener = null;
+function listenChat() {
+  const box = document.getElementById('chatBox');
+  if (chatListener) db.ref('chat/'+activeRoom).off('value', chatListener);
+  chatListener = db.ref('chat/'+activeRoom).orderByChild('ts').limitToLast(80).on('value', snap => {
+    const msgs = [];
+    snap.forEach(c => msgs.push({...c.val(), id: c.key}));
+    if (!msgs.length) { box.innerHTML='<div class="empty" style="margin:auto">Sin mensajes. ¡Empieza tú! 🚀</div>'; return; }
+    box.innerHTML = msgs.map(m=>{
+      const isMe = m.name===user.name;
+      const initials = (m.name||'?')[0].toUpperCase();
+      const delBtn = isMe ? `<button class="del-btn" onclick="deleteMsg('${m.id}')" title="Borrar">✕</button>` : '';
+      return `<div class="bubble-wrap ${isMe?'me':''}">
+        <div class="bubble-av" style="background:${m.color||'#1a6cc4'}">${m.icon||initials}</div>
+        <div>
+          ${!isMe?`<div style="font-size:11px;font-weight:700;color:${m.color||'#1a6cc4'};margin-bottom:2px">${safe(m.name)}</div>`:''}
+          <div class="bubble">${safe(m.body)}${delBtn}
+            <div class="bubble-meta">${fmtTime(m.ts)}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+    playBeep();
+  });
+}
+listenChat();
+
+// ===== TASKS =====
+function addTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  const date = document.getElementById('taskDate').value;
+  const subject = document.getElementById('taskSubject').value;
+  const type = document.getElementById('taskType').value;
+  if (!title||!date) return;
+  db.ref('tasks').push({title, date, subject, type, author: user.name, ts: Date.now()});
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDate').value = '';
+  showToast('taskToast'); addPoints(2);
+}
+function deleteTask(id) { db.ref('tasks/'+id).remove(); }
+
+db.ref('tasks').orderByChild('date').on('value', snap => {
+  const tasks = [];
+  snap.forEach(c => tasks.push({...c.val(), id: c.key}));
+  const list = document.getElementById('taskList');
+  if (!tasks.length) { list.innerHTML='<div class="empty"><span class="big">📅</span>No hay tareas registradas.</div>'; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  list.innerHTML = tasks.map(t=>{
+    const d = new Date(t.date+'T00:00:00');
+    const diff = Math.ceil((d-today)/(1000*60*60*24));
+    const cls = diff<=1?'urgent':diff<=3?'soon':'ok';
+    const urgLabel = diff<0?'⚠️ Vencido':diff===0?'🔴 Hoy':diff===1?'🟡 Mañana':`📅 En ${diff} días`;
+    return `<div class="task-item ${cls}">
+      <div class="task-date"><div class="td">${d.getDate()}</div><div class="tm">${months[d.getMonth()]}</div></div>
+      <div class="task-info"><div class="task-title">${safe(t.title)}</div>
+        <div class="task-sub">${t.type} · ${t.subject} · ${urgLabel}</div></div>
+      <button class="task-del" onclick="deleteTask('${t.id}')" title="Eliminar">🗑️</button>
+    </div>`;
+  }).join('');
+});
+
+// ===== POLLS =====
+function createPoll() {
+  const q = document.getElementById('pollQ').value.trim();
+  const o1 = document.getElementById('pollO1').value.trim();
+  const o2 = document.getElementById('pollO2').value.trim();
+  const o3 = document.getElementById('pollO3').value.trim();
+  if (!q||!o1||!o2) return;
+  const opts = [o1,o2]; if(o3) opts.push(o3);
+  db.ref('polls').push({q, opts, votes: opts.map(()=>0), ts: Date.now()});
+  ['pollQ','pollO1','pollO2','pollO3'].forEach(id=>document.getElementById(id).value='');
+  showToast('pollToast'); addPoints(5);
+}
+function vote(pid) {
+  if (votedPolls.includes(pid)) return;
+  const sel = document.querySelector(`input[name="poll${pid}"]:checked`);
+  if (!sel) return;
+  const idx = parseInt(sel.value);
+  db.ref('polls/'+pid+'/votes/'+idx).transaction(v=>(v||0)+1);
+  votedPolls.push(pid);
+  localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
+  addPoints(1);
+}
+
+db.ref('polls').orderByChild('ts').on('value', snap => {
+  const polls = [];
+  snap.forEach(c => polls.unshift({...c.val(), id: c.key}));
+  const list = document.getElementById('pollList');
+  if (!polls.length) { list.innerHTML='<div class="empty"><span class="big">📊</span>No hay encuestas todavía.</div>'; return; }
+  list.innerHTML = polls.map(p=>{
+    const total = (p.votes||[]).reduce((a,b)=>a+b,0);
+    const voted = votedPolls.includes(p.id);
+    if (voted) {
+      const bars = (p.opts||[]).map((o,i)=>{
+        const pct = total?Math.round((p.votes[i]||0)/total*100):0;
+        return `<div class="poll-bar-row"><span style="min-width:80px;font-size:13px">${o}</span><div class="poll-bar"><div class="poll-bar-fill" style="width:${pct}%"></div></div><span class="poll-pct">${pct}%</span></div>`;
+      }).join('');
+      return `<div class="poll-card"><div class="poll-q">${safe(p.q)}</div><div class="poll-bar-wrap">${bars}</div><div style="font-size:12px;color:var(--muted);margin-top:.5rem">Total: ${total} voto(s)</div></div>`;
+    }
+    const opts = (p.opts||[]).map((o,i)=>`<label class="poll-opt"><input type="radio" name="poll${p.id}" value="${i}"> ${o}</label>`).join('');
+    return `<div class="poll-card"><div class="poll-q">${safe(p.q)}</div><div class="poll-options">${opts}</div><button class="vote-btn" onclick="vote('${p.id}')">Votar ✅</button></div>`;
+  }).join('');
+});
+
+// ===== ANNOUNCEMENTS =====
+function sendAnn() {
+  const msg = document.getElementById('annMsg').value.trim();
+  const type = document.getElementById('annType').value;
+  const role = document.getElementById('annRole').value;
+  if (!msg) return;
+  db.ref('announcements').push({msg, type, role, ts: Date.now()});
+  document.getElementById('annMsg').value = '';
+  showToast('annToast');
+}
+
+db.ref('announcements').orderByChild('ts').on('value', snap => {
+  const anns = [];
+  snap.forEach(c => anns.unshift({...c.val(), id: c.key}));
+  const list = document.getElementById('annList');
+  if (!anns.length) { list.innerHTML='<div class="empty"><span class="big">📢</span>No hay anuncios todavía.</div>'; return; }
+  list.innerHTML = anns.map(a=>`
+    <div class="ann-card">
+      <div class="ann-header"><span class="ann-tag">${a.type}</span><span class="ann-author">${a.role}</span></div>
+      <div class="ann-body">${safe(a.msg)}</div>
+      <div class="ann-time">🕐 ${fmtTime(a.ts)}</div>
+    </div>`).join('');
+});
+
+// ===== RANKING =====
+db.ref('ranking').orderByChild('pts').on('value', snap => {
+  const scores = [];
+  snap.forEach(c => scores.unshift({name: c.key, ...c.val()}));
+  const list = document.getElementById('rankList');
+  if (!scores.length) { list.innerHTML='<div class="empty"><span class="big">🏆</span>Aún no hay puntuaciones.</div>'; return; }
+  const medals=['🥇','🥈','🥉']; const mClass=['gold','silver','bronze'];
+  list.innerHTML = scores.slice(0,10).map((s,i)=>`
+    <div class="rank-item">
+      <div class="rank-pos ${mClass[i]||''}">${medals[i]||'#'+(i+1)}</div>
+      <div class="rank-av" style="background:${s.color||'#1a6cc4'}">${s.icon||s.name[0].toUpperCase()}</div>
+      <div class="rank-name">${safe(s.name)}</div>
+      <div class="rank-pts">${s.pts} pts</div>
+    </div>`).join('');
+});
+
+// ===== ONLINE COUNTER =====
+const onlineRef = db.ref('online/'+Math.random().toString(36).slice(2));
+onlineRef.set(true);
+onlineRef.onDisconnect().remove();
+db.ref('online').on('value', snap => {
+  document.getElementById('onlineCount').textContent = snap.numChildren()||1;
+});
+
+// ===== INIT =====
+updateProfileUI();
+</script>
+</body>
+</html>
